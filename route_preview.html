@@ -13,6 +13,7 @@
             position: fixed; bottom: 20px; left: 20px; background: white;
             padding: 12px 16px; border-radius: 8px; z-index: 9999;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 13px; line-height: 1.8;
+            max-height: 80vh; overflow-y: auto;
         }
         .legend b { font-size: 14px; }
         .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
@@ -22,17 +23,26 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 13px;
         }
         .toggle-panel label { display: block; margin: 4px 0; cursor: pointer; }
+        .stats-panel {
+            position: fixed; top: 10px; left: 10px; background: white;
+            padding: 10px 14px; border-radius: 8px; z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 12px;
+            max-width: 340px; line-height: 1.6;
+        }
+        .stats-panel table { border-collapse: collapse; width: 100%; font-size: 11px; }
+        .stats-panel th, .stats-panel td { padding: 2px 6px; text-align: left; border-bottom: 1px solid #eee; }
+        .stats-panel th { font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div class="legend">
-        <b>Route Preview</b><br>
+        <b>Route Preview v2</b><br>
         <span class="dot" style="background:#2196F3"></span> ROUTE_LINE (inner / right_side)<br>
         <span class="dot" style="background:#F44336"></span> OUTER_BORDER (outer / left_side)<br>
         <span class="dot" style="background:#4CAF50"></span> Start point<br>
         <span class="dot" style="background:#FF9800"></span> End point<br>
-        <span class="dot" style="background:#9C27B0"></span> Zone breakpoint markers<br>
+        <span class="dot" style="background:#9C27B0"></span> Zone markers (colored by track)<br>
         <span class="dot" style="background:#795548"></span> Old route (PeripheralMode)
     </div>
     <div class="toggle-panel">
@@ -40,13 +50,15 @@
         <label><input type="checkbox" id="togRoute" checked> ROUTE_LINE (blue)</label>
         <label><input type="checkbox" id="togOuter" checked> OUTER_BORDER (red)</label>
         <label><input type="checkbox" id="togZones" checked> Zone markers</label>
-        <label><input type="checkbox" id="togOld" checked> Old route (brown)</label>
-        <label><input type="checkbox" id="togOldOuter" checked> Old outer (brown dashed)</label>
+        <label><input type="checkbox" id="togOld"> Old route (brown)</label>
+        <label><input type="checkbox" id="togOldOuter"> Old outer (brown dashed)</label>
+    </div>
+    <div class="stats-panel" id="statsPanel">
+        <b>Zone Distribution</b> (loading...)
     </div>
 
     <script>
     // ── NEW ROUTE_LINE (Feature 2 from user GeoJSON, 53 points) ──────────
-    // [lon, lat] format — Leaflet needs [lat, lon] so we flip below
     var ROUTE_LINE = [
         [29.9068798, 31.1997637], [29.9062710, 31.1995091], [29.9062334, 31.1994953],
         [29.9067001, 31.1987153], [29.9069442, 31.1982679], [29.9068128, 31.1982013],
@@ -153,22 +165,26 @@
         return line[line.length - 1];
     }
 
-    // ── Preliminary zone breakpoints (evenly distributed for preview) ────
-    // Track1: z1-6 (0-15%), Trans: z7-10 (15-22%), Track2: z11-25 (22-45%),
-    // Trans: z26-27 (45-48%), Track3: z28-31 (48-65%), Track4: z32-35 (65-100%)
+    // ── UPDATED ZONE BREAKPOINTS v2 ─────────────────────────────────────
+    // Track 1:      zones 1-6   →  0% to 10%   (compact museum plaza)
+    // Trans 1→2:    zones 7-10  → 10% to 16%   (heading onto Safeya Zaghloul)
+    // Track 2:      zones 11-25 → 16% to 45%   (Safeya Zaghloul, ends before seafront corner)
+    // Hinge 2→3:    zones 26-27 → 45% to 50%   (seafront corner → mid-seafront)
+    // Track 3:      zones 28-31 → 50% to 74%   (mid-seafront → south down El Naby Danial)
+    // Track 4:      zones 32-35 → 74% to 100%  (lower El Naby + side streets back)
     var ZONE_BREAKPOINTS = [];
-    // Track 1: zones 1-6 → 0% to 15%
-    for (var i = 0; i < 6; i++) ZONE_BREAKPOINTS.push((i + 1) * 0.15 / 6);
-    // Transition: zones 7-10 → 15% to 22%
-    for (var i = 0; i < 4; i++) ZONE_BREAKPOINTS.push(0.15 + (i + 1) * 0.07 / 4);
-    // Track 2: zones 11-25 → 22% to 45%
-    for (var i = 0; i < 15; i++) ZONE_BREAKPOINTS.push(0.22 + (i + 1) * 0.23 / 15);
-    // Transition: zones 26-27 → 45% to 48%
-    for (var i = 0; i < 2; i++) ZONE_BREAKPOINTS.push(0.45 + (i + 1) * 0.03 / 2);
-    // Track 3: zones 28-31 → 48% to 65%
-    for (var i = 0; i < 4; i++) ZONE_BREAKPOINTS.push(0.48 + (i + 1) * 0.17 / 4);
-    // Track 4: zones 32-35 → 65% to 100%
-    for (var i = 0; i < 4; i++) ZONE_BREAKPOINTS.push(0.65 + (i + 1) * 0.35 / 4);
+    // Track 1: zones 1-6 → 0% to 10%
+    for (var i = 0; i < 6; i++) ZONE_BREAKPOINTS.push((i + 1) * 0.10 / 6);
+    // Transition 1→2: zones 7-10 → 10% to 16%
+    for (var i = 0; i < 4; i++) ZONE_BREAKPOINTS.push(0.10 + (i + 1) * 0.06 / 4);
+    // Track 2: zones 11-25 → 16% to 45%
+    for (var i = 0; i < 15; i++) ZONE_BREAKPOINTS.push(0.16 + (i + 1) * 0.29 / 15);
+    // Hinge 2→3: zones 26-27 → 45% to 50%
+    for (var i = 0; i < 2; i++) ZONE_BREAKPOINTS.push(0.45 + (i + 1) * 0.05 / 2);
+    // Track 3: zones 28-31 → 50% to 74%
+    for (var i = 0; i < 4; i++) ZONE_BREAKPOINTS.push(0.50 + (i + 1) * 0.24 / 4);
+    // Track 4: zones 32-35 → 74% to 100%
+    for (var i = 0; i < 4; i++) ZONE_BREAKPOINTS.push(0.74 + (i + 1) * 0.26 / 4);
 
     var ZONE_COLORS = {
         'Track 1': '#4CAF50', 'Transition 1-2': '#FFEB3B',
@@ -202,15 +218,15 @@
         color: '#F44336', weight: 3, opacity: 0.7, dashArray: '8,6'
     }).addTo(map);
 
-    // Old route (brown solid)
+    // Old route (brown solid) — hidden by default now
     var oldRouteLayer = L.polyline(flip(OLD_ROUTE), {
         color: '#795548', weight: 3, opacity: 0.5
-    }).addTo(map);
+    });
 
-    // Old outer (brown dashed)
+    // Old outer (brown dashed) — hidden by default now
     var oldOuterLayer = L.polyline(flip(OLD_OUTER), {
         color: '#795548', weight: 2, opacity: 0.4, dashArray: '4,8'
-    }).addTo(map);
+    });
 
     // Start marker (green)
     var startPt = ROUTE_LINE[0];
@@ -224,22 +240,62 @@
         radius: 10, color: '#FF9800', fillColor: '#FF9800', fillOpacity: 0.9, weight: 2
     }).addTo(map).bindPopup('<b>END</b><br>Zone 35<br>[' + endPt[0].toFixed(4) + ', ' + endPt[1].toFixed(4) + ']');
 
-    // Zone breakpoint markers (purple)
+    // Zone breakpoint markers
     var arcs = computeArcLengths(ROUTE_LINE);
     var totalM = arcs[arcs.length - 1];
     var zoneMarkers = L.layerGroup().addTo(map);
+    var WALK_SPEED = 1.2; // m/s — slow soundwalk pace
+
+    // Build stats for panel
+    var sections = [
+        { name: 'Track 1',          zones: [1,6],   color: '#4CAF50' },
+        { name: 'Transition 1→2',   zones: [7,10],  color: '#FFEB3B' },
+        { name: 'Track 2',          zones: [11,25], color: '#2196F3' },
+        { name: 'Hinge 2→3',        zones: [26,27], color: '#FF9800' },
+        { name: 'Track 3',          zones: [28,31], color: '#9C27B0' },
+        { name: 'Track 4',          zones: [32,35], color: '#F44336' },
+    ];
+
+    function getZoneStart(z) { return z === 1 ? 0 : ZONE_BREAKPOINTS[z - 2]; }
+    function getZoneEnd(z)   { return ZONE_BREAKPOINTS[z - 1]; }
+
+    var statsHtml = '<b>Zone Distribution v2</b><br>Total route: <b>' + Math.round(totalM) + ' m</b> | Walk speed: ' + WALK_SPEED + ' m/s<br><br>';
+    statsHtml += '<table><tr><th></th><th>Zones</th><th>%</th><th>~m</th><th>~min</th><th>sec/zone</th></tr>';
+
+    sections.forEach(function(sec) {
+        var startP = getZoneStart(sec.zones[0]);
+        var endP   = getZoneEnd(sec.zones[1]);
+        var pct    = ((endP - startP) * 100).toFixed(1);
+        var metres = Math.round((endP - startP) * totalM);
+        var mins   = (metres / WALK_SPEED / 60).toFixed(1);
+        var nZones = sec.zones[1] - sec.zones[0] + 1;
+        var secPerZone = Math.round(metres / WALK_SPEED / nZones);
+        statsHtml += '<tr><td><span class="dot" style="background:' + sec.color + '"></span>' + sec.name + '</td>';
+        statsHtml += '<td>' + sec.zones[0] + '–' + sec.zones[1] + '</td>';
+        statsHtml += '<td>' + pct + '%</td>';
+        statsHtml += '<td>' + metres + '</td>';
+        statsHtml += '<td>' + mins + '</td>';
+        statsHtml += '<td>' + secPerZone + 's</td></tr>';
+    });
+    statsHtml += '</table>';
+    document.getElementById('statsPanel').innerHTML = statsHtml;
 
     for (var z = 0; z < ZONE_BREAKPOINTS.length; z++) {
-        var p = (z === 0) ? ZONE_BREAKPOINTS[0] / 2 : (ZONE_BREAKPOINTS[z-1] + ZONE_BREAKPOINTS[z]) / 2;
-        var pt = interpAtProgress(ROUTE_LINE, arcs, p);
+        var pStart = (z === 0) ? 0 : ZONE_BREAKPOINTS[z-1];
+        var pEnd   = ZONE_BREAKPOINTS[z];
+        var pMid   = (pStart + pEnd) / 2;
+        var pt = interpAtProgress(ROUTE_LINE, arcs, pMid);
         var zNum = z + 1;
         var col = zoneColor(zNum);
+        var zoneM = Math.round((pEnd - pStart) * totalM);
+        var zoneSec = Math.round(zoneM / WALK_SPEED);
         L.circleMarker([pt[1], pt[0]], {
             radius: 7, color: col, fillColor: col, fillOpacity: 0.8, weight: 1
         }).addTo(zoneMarkers).bindPopup(
-            '<b>Zone ' + zNum + '</b><br>' + zoneLabel(zNum) +
-            '<br>Progress: ' + (ZONE_BREAKPOINTS[z] * 100).toFixed(1) + '%'+
-            '<br>~' + Math.round(ZONE_BREAKPOINTS[z] * totalM) + 'm / ' + Math.round(totalM) + 'm'
+            '<b>Zone ' + zNum + '</b> — ' + zoneLabel(zNum) +
+            '<br>Progress: ' + (pStart * 100).toFixed(1) + '% → ' + (pEnd * 100).toFixed(1) + '%' +
+            '<br>~' + zoneM + ' m (~' + zoneSec + ' sec)' +
+            '<br>Location: ~' + Math.round(pMid * totalM) + 'm / ' + Math.round(totalM) + 'm'
         );
     }
 
@@ -250,12 +306,12 @@
     // Total distance readout
     L.control.attribution({prefix:
         'Total ROUTE_LINE: <b>' + Math.round(totalM) + ' m</b> | ' +
-        ZONE_BREAKPOINTS.length + ' zones'
+        ZONE_BREAKPOINTS.length + ' zones | ~' + Math.round(totalM / WALK_SPEED / 60) + ' min walk'
     }).addTo(map);
 
     // Fit bounds to show everything
-    var allPts = flip(ROUTE_LINE).concat(flip(OUTER_BORDER)).concat(flip(OLD_ROUTE));
-    map.fitBounds(L.latLngBounds(allPts).pad(0.05));
+    var allPts = flip(ROUTE_LINE).concat(flip(OUTER_BORDER));
+    map.fitBounds(L.latLngBounds(allPts).pad(0.08));
 
     // ── Toggle controls ──────────────────────────────────────────────────
     document.getElementById('togRoute').addEventListener('change', function() {
