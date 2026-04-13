@@ -21,7 +21,7 @@
 #X floatatom 560 162 8 0 0 0 alex_loop_progress - - 0;
 #X obj 560 192 s alex_router_loop_progress;
 #X obj 761 58 text define -k \$0-zone-scenes;
-#A set 1 \; 2 \; 3 \; 4 \; 4.5 \; 4.5 \; 5 \; 7 \; 8 \; 10 \; 10 \; 12 \; 14 \; 15 \; 15 \; 16.5 \; 17 \; 19 \; 20 \; 20 \; 22 \; 23.1 \; 24 \; 24.2 \; 24.2 \; 26 \; 27.5 \; 28 \; 28.5 \; 30 \; 30 \; 31 \; 33 \; 35 \; 35 \;;
+#A set 1 \; 2 \; 3 \; 4 \; 4 \; 4.5 \; 5 \; 6 \; 7 \; 8 \; 10 \; 11 \; 13 \; 14 \; 15 \; 16 \; 16.75 \; 18 \; 19 \; 20 \; 22 \; 23.1 \; 24 \; 24.1 \; 24.2 \; 26 \; 27 \; 28 \; 28.5 \; 29 \; 30 \; 31 \; 32 \; 33 \; 34 \;;
 #X text 761 20 35-zone target scene map aligned to the real loop geometry and the revised timing arc.;
 #X text 761 37 Zones 14-27 now carry scenes 28-30 \; zones 28-35 carry scenes 31-35.;
 #X text 23 405 Sends:;
