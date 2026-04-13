@@ -62,17 +62,17 @@
     var YAMNET_MODEL_URL    = 'https://tfhub.dev/google/tfjs-model/yamnet/tfjs/1';
     var CLASS_MAP_CSV_URL   = 'https://raw.githubusercontent.com/tensorflow/models/master/research/audioset/yamnet/yamnet_class_map.csv';
     var YAMNET_SAMPLE_RATE  = 16000;
-    var YAMNET_FRAME_SAMPLES = 15600;   // 0.975 s @ 16 kHz
+    var YAMNET_FRAME_SAMPLES = 7800;    // 0.49 s @ 16 kHz
 
     var CONFIG = {
         fftSize:            1024,
         inputAnalysisGain:  3,
         inputHighpassHz:    80,
         inputLowpassHz:     9000,
-        smoothingAlpha:     0.30,
-        minStateHoldMs:     420,
+        smoothingAlpha:     0.50,
+        minStateHoldMs:     280,
         silenceDbThreshold: -55,
-        silenceHoldMs:      1200,
+        silenceHoldMs:      800,
         minDb:              -90,
         maxDb:              -12,
     };
@@ -83,6 +83,11 @@
             'Vehicle horn, car horn, honking',
             'Air horn, truck horn',
             'Honking',
+            'Beep, bleep',
+            'Alarm',
+            'Siren',
+            'Bicycle bell',
+            'Toot',
         ],
         chatter: [
             'Speech',
@@ -244,6 +249,12 @@
             'car': 300,
             'vehicle horn, car horn, honking': 302,
             'air horn, truck horn': 303,
+            'honking': 399,
+            'beep, bleep': 396,
+            'toot': 398,
+            'alarm': 400,
+            'siren': 401,
+            'bicycle bell': 404,
             'engine': 304,
             'engine starting': 305,
             'truck': 306,
