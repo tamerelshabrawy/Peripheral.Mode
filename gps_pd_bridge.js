@@ -2,6 +2,7 @@
     "use strict";
     let _pd = null, _watchId = null, _currentZone = -1, _currentFamily = -1, _onUpdate = null;
     let _pendingZone = -1, _zoneTimer = null;
+    let _classifierStarted = false;
     var ZONE_DEBOUNCE_MS = 3000;
 
     function sendToPd(receiver, value) {
@@ -16,6 +17,11 @@
         var family = GeoLogic.zoneToFamily(zone);
         var label = GeoLogic.zoneToTrackLabel(zone);
         sendToPd("zone", zone);
+        if (zone >= 32 && !_classifierStarted && window.AiClassifierBridge) {
+            _classifierStarted = true;
+            window.AiClassifierBridge.start();
+            console.log("[gps_pd_bridge] AI classifier started (zone " + zone + ", Track 4)");
+        }
         console.log("[gps_pd_bridge] ZONE", zone, "(" + label + ") | debounced");
         if (family !== _currentFamily) {
             _currentFamily = family;
