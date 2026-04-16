@@ -1293,7 +1293,7 @@
 #X text 240 33 //GUI;
 #X text 302 171 //GUI;
 #X obj 287 191 r TablaLevel;
-#X obj 287 221 pack f 2000;
+#X obj 287 221 pack f 3000;
 #X obj 287 251 line;
 #X obj 302 216 + 100;
 #X obj 302 240 dbtorms;
@@ -8506,7 +8506,7 @@
 #X obj 650 124 route float;
 #X obj 520 154 route float;
 #X obj 61 504 route float;
-#X obj 61 534 pack f 2000;
+#X obj 61 534 pack f 3000;
 #X obj 61 564 line;
 #X obj 331 597 route float;
 #X obj 289 180 route float;
